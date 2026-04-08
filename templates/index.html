@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SentimentScope — Amazon Review Analyzer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"/>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+        </div>
+        <span class="brand-name">SentimentScope</span>
+      </div>
+      <div class="tagline">Customer Feedback Analysis System</div>
+    </div>
+    <div class="header-badge">Review System</div>
+  </div>
+
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}{% for msg in messages %}<div style="padding:12px 16px;border-radius:10px;margin-bottom:1rem;font-size:14px;background:var(--amber-light);color:var(--amber);">{{ msg }}</div>{% endfor %}{% endif %}
+  {% endwith %}
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab" id="tab-text"  onclick="switchTab('text')">✏️ Text Review</button>
+    <button class="tab" id="tab-voice" onclick="switchTab('voice')">🎤 Voice Input</button>
+    <button class="tab" id="tab-csv"   onclick="switchTab('csv')">📊 Bulk CSV</button>
+  </div>
+
+  <!-- ══════════════════════════════
+       TEXT REVIEW  →  POST /
+  ══════════════════════════════ -->
+  <div id="panel-text" class="panel">
+    <div class="card">
+      <div class="card-label">Enter your review</div>
+      <form method="POST" action="/">
+        <textarea style="resize: none;" id="reviewText" name="review"
+          placeholder="e.g. The battery life on this device is incredible. It lasts two full days and the performance is top-notch..."
+          oninput="updateChar()" required>{{ review_text or '' }}</textarea>
+        <div class="char-count"><span id="charCount">{{ (review_text or '') | length }}</span> characters</div>
+        <button type="submit" class="btn btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          Analyze Sentiment
+        </button>
+      </form>
+    </div>
+
+    {% if prediction and active_tab == 'text' %}
+      {% set p = prediction | lower %}
+      {% if 'positive' in p %}
+        <div class="result-card positive">
+          <div class="result-top"><span class="sentiment-badge">🌟</span><span class="sentiment-label positive">Positive Review</span></div>
+          <div class="stars">⭐⭐⭐⭐⭐</div>
+          <div class="result-review-text">"{{ review_text }}"</div>
+        </div>
+      {% elif 'negative' in p %}
+        <div class="result-card negative">
+          <div class="result-top"><span class="sentiment-badge">👎</span><span class="sentiment-label negative">Negative Review</span></div>
+          <div class="stars">☆☆☆☆☆</div>
+          <div class="result-review-text">"{{ review_text }}"</div>
+        </div>
+      {% elif 'neutral' in p %}
+        <div class="result-card neutral">
+          <div class="result-top"><span class="sentiment-badge">😐</span><span class="sentiment-label neutral">Neutral Review</span></div>
+          <div class="stars">⭐⭐⭐☆☆</div>
+          <div class="result-review-text">"{{ review_text }}"</div>
+        </div>
+      {% else %}
+        <div class="result-card invalid">
+          <div class="result-top"><span class="sentiment-badge">⚠️</span><span class="sentiment-label invalid">Invalid Input</span></div>
+          <div class="result-review-text">The text doesn't appear to be a product review, or contains unrecognised words.</div>
+        </div>
+      {% endif %}
+    {% endif %}
+
+    <div class="how-it-works">
+      <div class="card-label" style="margin-bottom:0.75rem">How it works</div>
+      <div class="how-row"><div class="how-num">1</div><div class="how-text"><strong>Preprocessing</strong> — text is cleaned, lowercased and normalised</div></div>
+      <div class="how-row"><div class="how-num">2</div><div class="how-text"><strong>Vocabulary check</strong> — ensures the review contains known product-domain words</div></div>
+      <div class="how-row"><div class="how-num">3</div><div class="how-text"><strong>ML Prediction</strong> — vectorised text is passed to the trained classifier</div></div>
+      <div class="how-row"><div class="how-num">4</div><div class="how-text"><strong>Result</strong> — Positive, Negative, Neutral, or Invalid is returned</div></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════
+       VOICE INPUT  →  GET /voice
+  ══════════════════════════════ -->
+  <div id="panel-voice" class="panel">
+    <div class="card">
+      <div class="voice-section">
+        <a href="/voice" class="mic-btn" id="micBtn" title="Click to record voice">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="white">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <line x1="12" y1="19" x2="12" y2="23" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <line x1="8"  y1="23" x2="16" y2="23" stroke="white" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </a>
+        <div class="mic-label">Click the mic to record your review</div>
+        <div class="voice-status">
+          {% if active_tab == 'voice' and review_text %}✓ Transcription complete
+          {% else %}Microphone ready — uses Google Speech Recognition{% endif %}
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="card-label">Transcription</div>
+      <textarea style="resize: none;" id="voiceText" placeholder="Your spoken review will appear here after recording..."
+        style="min-height:80px; margin-bottom:0;" readonly
+      >{% if active_tab == 'voice' %}{{ review_text or '' }}{% endif %}</textarea>
+    </div>
+
+    {% if prediction and active_tab == 'voice' %}
+      {% set p = prediction | lower %}
+      {% if 'positive' in p %}
+        <div class="result-card positive">
+          <div class="result-top"><span class="sentiment-badge">🌟</span><span class="sentiment-label positive">Positive Review</span></div>
+          <div class="stars">⭐⭐⭐⭐⭐</div>
+          <div class="result-review-text">"{{ review_text }}"</div>
+        </div>
+      {% elif 'negative' in p %}
+        <div class="result-card negative">
+          <div class="result-top"><span class="sentiment-badge">👎</span><span class="sentiment-label negative">Negative Review</span></div>
+          <div class="stars">☆☆☆☆☆</div>
+          <div class="result-review-text">"{{ review_text }}"</div>
+        </div>
+      {% elif 'neutral' in p %}
+        <div class="result-card neutral">
+          <div class="result-top"><span class="sentiment-badge">😐</span><span class="sentiment-label neutral">Neutral Review</span></div>
+          <div class="stars">⭐⭐⭐☆☆</div>
+          <div class="result-review-text">"{{ review_text }}"</div>
+        </div>
+      {% else %}
+        <div class="result-card invalid">
+          <div class="result-top"><span class="sentiment-badge">⚠️</span><span class="sentiment-label invalid">Invalid Input</span></div>
+          <div class="result-review-text">Could not recognise speech, or the review was invalid.</div>
+        </div>
+      {% endif %}
+    {% endif %}
+  </div>
+
+  <!-- ══════════════════════════════
+       BULK CSV  →  POST /upload
+  ══════════════════════════════ -->
+  <div id="panel-csv" class="panel">
+    <div class="card">
+      <div class="card-label">Upload CSV file</div>
+      <form method="POST" action="/upload" enctype="multipart/form-data" id="csvForm">
+        <div class="upload-zone" id="dropZone"
+             onclick="document.getElementById('csvFile').click()"
+             ondragover="handleDragOver(event)"
+             ondragleave="handleDragLeave(event)"
+             ondrop="handleDrop(event)">
+          <span class="upload-icon">📁</span>
+          <div class="upload-text">Drop your CSV here or click to browse</div>
+          <div class="upload-hint">
+            Must contain <strong>exactly one column</strong> named
+            <code style="background:var(--surface);padding:1px 6px;border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;border:0.5px solid var(--border);">review</code>
+            (case-sensitive)
+          </div>
+        </div>
+        <input type="file" id="csvFile" name="file" accept=".csv" onchange="handleFileSelect(event)">
+        <div id="fileInfo" style="display:none" class="file-selected">
+          <span class="file-icon">📄</span>
+          <span class="file-name" id="fileName">—</span>
+          <span class="file-size" id="fileSize">—</span>
+        </div>
+
+        <!-- CSV format example -->
+        <div class="format-hint">
+          <div class="format-hint-label">Required format</div>
+          <pre>review
+This product is amazing!
+Very disappointed, stopped working.
+Decent for the price.</pre>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="margin-top:0.75rem">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Process All Reviews
+        </button>
+      </form>
+    </div>
+
+    <!-- Validation error from Flask -->
+    {% if csv_error %}
+      <div class="alert-error">
+        <span class="alert-error-icon">🚫</span>
+        <div class="alert-error-body">
+          <div class="alert-error-title">Upload Failed</div>
+          <div class="alert-error-msg">{{ csv_error }}</div>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Results (only when active_tab == 'csv' and table is set) -->
+    {% if active_tab == 'csv' and table %}
+      <div class="card">
+        <div class="card-label" style="margin-bottom:1rem">Results Summary</div>
+
+        <div class="stats-row">
+          <div class="stat-box">
+            <div class="stat-num" style="color:var(--green)">{{ count_pos | default(0) }}</div>
+            <div class="stat-lbl">Positive</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-num" style="color:var(--red)">{{ count_neg | default(0) }}</div>
+            <div class="stat-lbl">Negative</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-num" style="color:var(--neutral)">{{ count_neu | default(0) }}</div>
+            <div class="stat-lbl">Neutral</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-num" style="color:var(--amber)">{{ count_inv | default(0) }}</div>
+            <div class="stat-lbl">Invalid</div>
+          </div>
+        </div>
+
+        <div class="divider" style="margin:0.75rem 0 1rem;"></div>
+        <div class="card-label">All predictions</div>
+        <div class="table-section" id="tableSection">
+          {{ table | safe }}
+        </div>
+
+        {% if download %}
+          <div class="download-row">
+            <a href="/download/csv" class="download-btn download-btn-csv">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              Download CSV
+            </a>
+            <a href="/download/pdf" class="download-btn download-btn-pdf">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10 9 9 9 8 9"/>
+              </svg>
+              Download PDF Report
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+
+</div><!-- /page -->
+
+<script>
+  function switchTab(name) {
+    ['text','voice','csv'].forEach(function(n) {
+      document.getElementById('tab-' + n).classList.toggle('active', n === name);
+      document.getElementById('panel-' + n).classList.toggle('active', n === name);
+    });
+  }
+
+  /* Activate the correct tab on page load (Flask sets active_tab) */
+  (function() { switchTab("{{ active_tab | default('text') }}"); })();
+
+  function updateChar() {
+    document.getElementById('charCount').textContent = document.getElementById('reviewText').value.length;
+  }
+
+  function handleDragOver(e) {
+    e.preventDefault();
+    document.getElementById('dropZone').style.borderColor = 'rgba(194,65,12,0.5)';
+    document.getElementById('dropZone').style.background  = 'rgba(194,65,12,0.04)';
+  }
+  function handleDragLeave() {
+    document.getElementById('dropZone').style.borderColor = '';
+    document.getElementById('dropZone').style.background  = '';
+  }
+  function handleDrop(e) {
+    e.preventDefault(); handleDragLeave();
+    var file = e.dataTransfer.files[0];
+    if (file) { document.getElementById('csvFile').files = e.dataTransfer.files; showFileInfo(file); }
+  }
+  function handleFileSelect(e) { var f = e.target.files[0]; if (f) showFileInfo(f); }
+  function showFileInfo(file) {
+    document.getElementById('fileInfo').style.display = 'flex';
+    document.getElementById('fileName').textContent   = file.name;
+    document.getElementById('fileSize').textContent   = (file.size/1024).toFixed(1) + ' KB';
+  }
+
+  /* Style the pandas-generated table and add coloured sentiment pills */
+  (function styleTable() {
+    var table = document.querySelector('.table-section table');
+    if (!table) return;
+    table.classList.add('result-table');
+    table.removeAttribute('border');
+    table.style.width = '100%';
+    table.querySelectorAll('tbody tr').forEach(function(row) {
+      var cells = row.querySelectorAll('td');
+      var pred  = cells[cells.length - 1];
+      if (!pred) return;
+      var txt = pred.textContent.trim().toLowerCase();
+      var cls = 'pill-inv', icon = '⚠️';
+      if      (txt.includes('positive')) { cls = 'pill-pos'; icon = '🌟'; }
+      else if (txt.includes('negative')) { cls = 'pill-neg'; icon = '👎'; }
+      else if (txt.includes('neutral'))  { cls = 'pill-neu'; icon = '😐'; }
+      pred.innerHTML = '<span class="pill ' + cls + '">' + icon + ' ' + pred.textContent.trim() + '</span>';
+    });
+  })();
+</script>
+</body>
+</html>

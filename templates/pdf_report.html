@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sentiment Analysis Report</title>
+  <style>
+    /* ── Reset & base ─────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 13px;
+      color: #1A1410;
+      background: #ffffff;
+      line-height: 1.5;
+    }
+
+    /* ── Page wrapper ─────────────────────────────────────────────── */
+    .page {
+      width: 100%;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 0;
+    }
+
+    /* ── Header band ──────────────────────────────────────────────── */
+    .report-header {
+      background: #1A1410;
+      color: #ffffff;
+      padding: 32px 36px 28px;
+      border-radius: 0 0 12px 12px;
+      margin-bottom: 28px;
+    }
+
+    .report-header .project-tag {
+      display: inline-block;
+      background: rgba(255,255,255,0.12);
+      color: #F59E0B;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 20px;
+      margin-bottom: 14px;
+    }
+
+    .report-header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      margin-bottom: 6px;
+      color: #ffffff;
+    }
+
+    .report-header .subtitle {
+      font-size: 12px;
+      color: rgba(255,255,255,0.55);
+      margin-bottom: 20px;
+    }
+
+    .meta-row {
+      display: table;
+      width: 100%;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      padding-top: 16px;
+      margin-top: 4px;
+    }
+
+    .meta-item {
+      display: table-cell;
+      width: 33.33%;
+    }
+
+    .meta-item .meta-label {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.4);
+      margin-bottom: 3px;
+    }
+
+    .meta-item .meta-value {
+      font-size: 12px;
+      color: rgba(255,255,255,0.85);
+      font-weight: 500;
+    }
+
+    /* ── Summary cards ────────────────────────────────────────────── */
+    .summary-section {
+      margin-bottom: 28px;
+      padding: 0 2px;
+    }
+
+    .section-title {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
+      color: #A89D93;
+      margin-bottom: 12px;
+      padding-left: 2px;
+    }
+
+    .stats-grid {
+      display: table;
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 8px;
+    }
+
+    .stat-card {
+      display: table-cell;
+      width: 20%;
+      background: #F8F4EF;
+      border-radius: 10px;
+      padding: 14px 10px;
+      text-align: center;
+      border: 1px solid rgba(26,20,16,0.07);
+    }
+
+    .stat-card .stat-num {
+      font-size: 28px;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 5px;
+    }
+
+    .stat-card .stat-lbl {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+      color: #A89D93;
+    }
+
+    .stat-card.total   .stat-num { color: #1A1410; }
+    .stat-card.positive .stat-num { color: #059669; }
+    .stat-card.negative .stat-num { color: #DC2626; }
+    .stat-card.neutral  .stat-num { color: #6B7280; }
+    .stat-card.invalid  .stat-num { color: #D97706; }
+
+    /* ── Data table ───────────────────────────────────────────────── */
+    .table-section {
+      margin-bottom: 28px;
+      padding: 0 2px;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid #E5DDD6;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .data-table thead tr {
+      background: #1A1410;
+    }
+
+    .data-table thead th {
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+      color: #ffffff;
+    }
+
+    .data-table thead th.col-num  { width: 44px; text-align: center; }
+    .data-table thead th.col-sent { width: 110px; text-align: center; }
+
+    .data-table tbody tr:nth-child(odd)  { background: #ffffff; }
+    .data-table tbody tr:nth-child(even) { background: #FAFAF8; }
+
+    .data-table tbody td {
+      padding: 10px 16px;
+      border-bottom: 1px solid #F0EBE4;
+      vertical-align: middle;
+      font-size: 12px;
+      color: #1A1410;
+    }
+
+    .data-table tbody tr:last-child td { border-bottom: none; }
+
+    .data-table tbody td.col-num {
+      text-align: center;
+      color: #A89D93;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .data-table tbody td.col-sent { text-align: center; }
+
+    /* ── Sentiment pills ──────────────────────────────────────────── */
+    .pill {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      white-space: nowrap;
+    }
+
+    .pill-positive { background: #D1FAE5; color: #059669; }
+    .pill-negative { background: #FEE2E2; color: #DC2626; }
+    .pill-neutral  { background: #F3F4F6; color: #6B7280; }
+    .pill-invalid  { background: #FEF3C7; color: #D97706; }
+
+    /* ── Footer ───────────────────────────────────────────────────── */
+    .report-footer {
+      border-top: 1px solid #E5DDD6;
+      padding-top: 14px;
+      text-align: center;
+      margin: 0 2px;
+    }
+
+    .report-footer p {
+      font-size: 10px;
+      color: #A89D93;
+      line-height: 1.6;
+    }
+
+    .report-footer strong {
+      color: #6B5F54;
+    }
+
+    /* ── Page-break helper ────────────────────────────────────────── */
+    .page-break { page-break-after: always; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ── Header ── -->
+  <div class="report-header">
+    <div class="project-tag">Amazon Reviews</div>
+    <h1>Amazon Review Sentiment Analysis</h1>
+    <div class="subtitle">Automated bulk sentiment classification report</div>
+
+    <div class="meta-row">
+      <div class="meta-item">
+        <div class="meta-label">Created By</div>
+        <div class="meta-value">{{ creator }}</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Generated</div>
+        <div class="meta-value">{{ generated_at }}</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Total Reviews</div>
+        <div class="meta-value">{{ stats.total }} processed</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Summary ── -->
+  <div class="summary-section">
+    <div class="section-title">Results Summary</div>
+    <div class="stats-grid">
+      <div class="stat-card total">
+        <div class="stat-num">{{ stats.total }}</div>
+        <div class="stat-lbl">Total</div>
+      </div>
+      <div class="stat-card positive">
+        <div class="stat-num">{{ stats.positive }}</div>
+        <div class="stat-lbl">Positive</div>
+      </div>
+      <div class="stat-card negative">
+        <div class="stat-num">{{ stats.negative }}</div>
+        <div class="stat-lbl">Negative</div>
+      </div>
+      <div class="stat-card neutral">
+        <div class="stat-num">{{ stats.neutral }}</div>
+        <div class="stat-lbl">Neutral</div>
+      </div>
+      <div class="stat-card invalid">
+        <div class="stat-num">{{ stats.invalid }}</div>
+        <div class="stat-lbl">Invalid</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Data table ── -->
+  <div class="table-section">
+    <div class="section-title">Review Predictions</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th class="col-num">#</th>
+          <th>Review</th>
+          <th class="col-sent">Sentiment</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td class="col-num">{{ loop.index }}</td>
+          <td>{{ row.review }}</td>
+          <td class="col-sent">
+            {% set s = row.sentiment | lower %}
+            {% if s == 'positive' %}
+              <span class="pill pill-positive">🌟 Positive</span>
+            {% elif s == 'negative' %}
+              <span class="pill pill-negative">👎 Negative</span>
+            {% elif s == 'neutral' %}
+              <span class="pill pill-neutral">😐 Neutral</span>
+            {% else %}
+              <span class="pill pill-invalid">⚠️ Invalid</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── Footer ── -->
+  <div class="report-footer">
+    <p>
+      Generated by <strong>SentimentScope</strong> &nbsp;·&nbsp;
+      {{ generated_at }} &nbsp;·&nbsp;
+      {{ stats.total }} reviews processed
+    </p>
+    <p>
+      Sentiment classes: &nbsp;
+      <strong style="color:#059669">Positive</strong> &nbsp;·&nbsp;
+      <strong style="color:#DC2626">Negative</strong> &nbsp;·&nbsp;
+      <strong style="color:#6B7280">Neutral</strong> &nbsp;·&nbsp;
+      <strong style="color:#D97706">Invalid</strong>
+    </p>
+  </div>
+
+</div>
+</body>
+</html>

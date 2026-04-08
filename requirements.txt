@@ -1,0 +1,12 @@
+numpy
+pandas
+matplotlib
+seaborn
+wordcloud
+scikit-learn
+Flask
+pickle-mixin
+SpeechRecognition
+pyttsx3
+reportlab
+TfidfVectorizer
