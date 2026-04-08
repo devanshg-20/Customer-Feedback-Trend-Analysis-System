@@ -9,4 +9,3 @@ pickle-mixin
 SpeechRecognition
 pyttsx3
 reportlab
-TfidfVectorizer
