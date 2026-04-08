@@ -2,6 +2,7 @@ numpy
 pandas
 matplotlib
 seaborn
+gunicorn
 wordcloud
 scikit-learn
 Flask
