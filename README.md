@@ -28,7 +28,7 @@ It also provides an interactive **Flask-based web application** where users can 
 
 ---
 
-## 🧠 Methodology
+## Methodology
 
 ### 1. Data Preprocessing
 - Loaded dataset using Pandas  
@@ -83,7 +83,7 @@ The trained model is deployed using **Flask** with the following functionalities
 
 ---
 
-## 🛠️ Technologies Used
+## Technologies Used
 - Python  
 - NumPy  
 - Pandas  
@@ -98,7 +98,7 @@ The trained model is deployed using **Flask** with the following functionalities
 
 ---
 
-## 📦 Installation
+## Installation
 
 ```bash
 git clone https://github.com/devanshg-20/Customer-Feedback-Trend-Analysis-System.git
