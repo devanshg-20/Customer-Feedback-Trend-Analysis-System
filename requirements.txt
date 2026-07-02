@@ -7,5 +7,5 @@ seaborn
 wordcloud
 scikit-learn
 SpeechRecognition
-pyttsx
+pyttsx3
 reportlab
